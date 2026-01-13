@@ -3,8 +3,6 @@ package org.example.model;
 import jakarta.persistence.*;
 import org.springframework.security.core.GrantedAuthority;
 
-import java.util.Objects;
-
 @Entity
 @Table(name = "roles")
 public class Role implements GrantedAuthority {
@@ -17,11 +15,6 @@ public class Role implements GrantedAuthority {
     private String name;
 
     public Role() {}
-
-    public Role(Long id, String name) {
-        this.id = id;
-        this.name = name;
-    }
 
     public Role(String name) {
         this.name = name;
@@ -45,7 +38,12 @@ public class Role implements GrantedAuthority {
 
     @Override
     public String getAuthority() {
-        return getName();
+        return "ROLE_" + name;
+    }
+
+    @Override
+    public String toString() {
+        return name;
     }
 
     @Override
@@ -53,17 +51,11 @@ public class Role implements GrantedAuthority {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Role role = (Role) o;
-        return Objects.equals(id, role.id) &&
-                Objects.equals(name, role.name);
+        return id != null && id.equals(role.id);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, name);
-    }
-
-    @Override
-    public String toString() {
-        return this.name;
+        return getClass().hashCode();
     }
 }

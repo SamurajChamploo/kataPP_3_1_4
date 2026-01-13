@@ -1,89 +1,61 @@
 package org.example.config;
 
-import jakarta.annotation.PostConstruct;
 import org.example.model.Role;
 import org.example.model.User;
-import org.example.repository.RoleRepository;
-import org.example.repository.UserRepository;
+import org.example.service.RoleService;
+import org.example.service.UserService;
+import org.springframework.boot.ApplicationRunner;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.Set;
 
-@Component
+@Configuration
 public class DataInitializer {
 
-    private final UserRepository userRepository;
-    private final RoleRepository roleRepository;
-    private final PasswordEncoder passwordEncoder;
-
-    public DataInitializer(UserRepository userRepository,
-                           RoleRepository roleRepository,
-                           PasswordEncoder passwordEncoder) {
-        this.userRepository = userRepository;
-        this.roleRepository = roleRepository;
-        this.passwordEncoder = passwordEncoder;
-    }
-
-    @PostConstruct
-    @Transactional
-    public void init() {
-
-        Role adminRole = roleRepository.findByName("ROLE_ADMIN")
-                .orElseGet(() -> {
-                    Role role = new Role("ROLE_ADMIN");
-                    return roleRepository.save(role);
-                });
-
-        Role userRole = roleRepository.findByName("ROLE_USER")
-                .orElseGet(() -> {
-                    Role role = new Role("ROLE_USER");
-                    return roleRepository.save(role);
-                });
-
-        if (userRepository.findByEmail("admin@mail.ru").isEmpty()) {
-            User admin = new User();
-            admin.setFirstName("Admin");
-            admin.setLastName("Adminov");
-            admin.setAge(30);
-            admin.setEmail("admin@mail.ru");
-
-            String encodedPassword = passwordEncoder.encode("password");
-            System.out.println("Admin password hash: " + encodedPassword);
-            admin.setPassword(encodedPassword);
-
-            Set<Role> adminRoles = new HashSet<>();
-            adminRoles.add(adminRole);
-            adminRoles.add(userRole);
-            admin.setRoles(adminRoles);
-
-            userRepository.save(admin);
-        } else {
-            User existingAdmin = userRepository.findByEmail("admin@mail.ru").get();
-
-            boolean passwordCorrect = passwordEncoder.matches("password", existingAdmin.getPassword());
-
-            if (!passwordCorrect) {
-                existingAdmin.setPassword(passwordEncoder.encode("password"));
-                userRepository.save(existingAdmin);
+    @Bean
+    public ApplicationRunner initData(UserService userService,
+                                      RoleService roleService,
+                                      PasswordEncoder passwordEncoder) {
+        return args -> {
+            if (roleService.findAllRoles().isEmpty()) {
+                Role adminRole = new Role("ADMIN");
+                Role userRole = new Role("USER");
             }
-        }
 
-        if (userRepository.findByEmail("user@mail.ru").isEmpty()) {
-            User user = new User();
-            user.setFirstName("User");
-            user.setLastName("Userov");
-            user.setAge(25);
-            user.setEmail("user@mail.ru");
-            user.setPassword(passwordEncoder.encode("password"));
+            if (userService.findAllUsers().isEmpty()) {
+                Role adminRole = roleService.findRoleByName("ADMIN");
+                Role userRole = roleService.findRoleByName("USER");
 
-            Set<Role> userRoles = new HashSet<>();
-            userRoles.add(userRole);
-            user.setRoles(userRoles);
+                User admin = new User();
+                admin.setFirstName("Admin");
+                admin.setLastName("Adminov");
+                admin.setAge(30);
+                admin.setEmail("admin@mail.ru");
+                admin.setPassword(passwordEncoder.encode("12345"));
 
-            userRepository.save(user);
-        }
+                Set<Role> adminRoles = new HashSet<>();
+                adminRoles.add(adminRole);
+                adminRoles.add(userRole);
+                admin.setRoles(adminRoles);
+
+                userService.saveUser(admin);
+
+                User user = new User();
+                user.setFirstName("User");
+                user.setLastName("Userov");
+                user.setAge(25);
+                user.setEmail("user@mail.ru");
+                user.setPassword(passwordEncoder.encode("12345"));
+
+                Set<Role> userRoles = new HashSet<>();
+                userRoles.add(userRole);
+                user.setRoles(userRoles);
+
+                userService.saveUser(user);
+            }
+        };
     }
 }

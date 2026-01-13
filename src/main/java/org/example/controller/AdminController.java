@@ -1,16 +1,14 @@
 package org.example.controller;
 
-import org.example.model.Role;
 import org.example.model.User;
+import org.example.service.UserService;
+import org.example.service.RoleService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-import org.example.service.RoleService;
-import org.example.service.UserService;
 
-import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 @Controller
@@ -20,6 +18,7 @@ public class AdminController {
     private final UserService userService;
     private final RoleService roleService;
 
+    @Autowired
     public AdminController(UserService userService, RoleService roleService) {
         this.userService = userService;
         this.roleService = roleService;
@@ -36,23 +35,9 @@ public class AdminController {
 
     @PostMapping("/users")
     public String createUser(@ModelAttribute("user") User user,
-                             @RequestParam(value = "selectedRoles", required = false) List<String> selectedRoles) {
-
-        setRolesIfNotEmpty(user, selectedRoles);
-
-        userService.saveUser(user);
+                             @RequestParam(value = "selectedRoles", required = false) Set<String> selectedRoles) {
+        userService.createUserWithRoles(user, selectedRoles);
         return "redirect:/admin";
-    }
-
-    private void setRolesIfNotEmpty(@ModelAttribute("user") User user, @RequestParam(value = "selectedRoles", required = false) List<String> selectedRoles) {
-        if (selectedRoles != null && !selectedRoles.isEmpty()) {
-            Set<Role> roles = new HashSet<>();
-            for (String roleName : selectedRoles) {
-                Role role = roleService.findRoleByName(roleName);
-                roles.add(role);
-            }
-            user.setRoles(roles);
-        }
     }
 
     @GetMapping("/users/{id}")
@@ -64,11 +49,9 @@ public class AdminController {
     @PostMapping("/users/{id}")
     public String updateUser(@PathVariable Long id,
                              @ModelAttribute("user") User user,
-                             @RequestParam(value = "selectedRoles", required = false) List<String> selectedRoles) {
-
-        setRolesIfNotEmpty(user, selectedRoles);
-
-        userService.updateUser(id, user);
+                             @RequestParam(value = "selectedRoles", required = false) Set<String> selectedRoles,
+                             @RequestParam(value = "password", required = false) String password) {
+        userService.updateUserWithRoles(id, user, selectedRoles);
         return "redirect:/admin";
     }
 

@@ -8,9 +8,7 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 
 @Component
 public class SuccessUserHandler implements AuthenticationSuccessHandler {
@@ -20,15 +18,23 @@ public class SuccessUserHandler implements AuthenticationSuccessHandler {
                                         HttpServletResponse response,
                                         Authentication authentication) throws IOException {
         Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
+        boolean hasAdminRole = authorities.stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(authority ->
+                        authority.equalsIgnoreCase("admin") ||
+                                authority.equalsIgnoreCase("role_admin")
+                );
 
-        List<String> roles = new ArrayList<>();
-        for (GrantedAuthority authority : authorities) {
-            roles.add(authority.getAuthority());
-        }
+        boolean hasUserRole = authorities.stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(authority ->
+                        authority.equalsIgnoreCase("user") ||
+                                authority.equalsIgnoreCase("role_user")
+                );
 
-        if (roles.contains("ROLE_ADMIN")) {
+        if (hasAdminRole) {
             response.sendRedirect("/admin");
-        } else if (roles.contains("ROLE_USER")) {
+        } else if (hasUserRole) {
             response.sendRedirect("/user");
         } else {
             response.sendRedirect("/");
