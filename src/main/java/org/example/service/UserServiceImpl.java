@@ -4,6 +4,8 @@ import org.example.model.Role;
 import org.example.model.User;
 import org.example.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,13 +50,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public User saveUser(User user) {
-        return createUserWithRoles(user, null);
-    }
-
-    @Override
-    @Transactional
-    public User createUserWithRoles(User user, Set<String> roleNames) {
+    public User createUser(User user, Set<String> roleNames) {
         if (existsByEmail(user.getEmail())) {
             throw new RuntimeException("User with email " + user.getEmail() + " already exists");
         }
@@ -76,13 +72,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public User updateUser(Long id, User updatedUser) {
-        return updateUserWithRoles(id, updatedUser, null);
-    }
-
-    @Override
-    @Transactional
-    public User updateUserWithRoles(Long id, User updatedUser, Set<String> roleNames) {
+    public User updateUser(Long id, User updatedUser, Set<String> roleNames) {
         User existingUser = findUserById(id);
 
         if (updatedUser.getFirstName() != null) {
@@ -130,5 +120,13 @@ public class UserServiceImpl implements UserService {
     @Override
     public boolean existsByEmail(String email) {
         return userRepository.existsByEmail(email);
+    }
+
+    @Override
+    public UserDetails loadUserByUsername(String email)
+            throws UsernameNotFoundException {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+        return user;
     }
 }

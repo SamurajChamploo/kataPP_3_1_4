@@ -36,22 +36,23 @@ public class AdminController {
     @PostMapping("/users")
     public String createUser(@ModelAttribute("user") User user,
                              @RequestParam(value = "selectedRoles", required = false) Set<String> selectedRoles) {
-        userService.createUserWithRoles(user, selectedRoles);
+        userService.createUser(user, selectedRoles);
         return "redirect:/admin";
     }
 
     @GetMapping("/users/{id}")
-    @ResponseBody
-    public User getUserById(@PathVariable Long id) {
-        return userService.findUserById(id);
+    public String getUserById(@PathVariable Long id, Model model) {
+        User user = userService.findUserById(id);
+        model.addAttribute("user", user);
+        model.addAttribute("allRoles", roleService.findAllRoles());
+        return "admin_panel :: #editUserModal";
     }
 
     @PostMapping("/users/{id}")
     public String updateUser(@PathVariable Long id,
                              @ModelAttribute("user") User user,
-                             @RequestParam(value = "selectedRoles", required = false) Set<String> selectedRoles,
-                             @RequestParam(value = "password", required = false) String password) {
-        userService.updateUserWithRoles(id, user, selectedRoles);
+                             @RequestParam(value = "selectedRoles", required = false) Set<String> selectedRoles) {
+        userService.updateUser(id, user, selectedRoles);
         return "redirect:/admin";
     }
 

@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="_csrf" th:content="${_csrf.token}"/>
+  <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
   <title>Admin panel</title>
   <link rel="stylesheet" href="/webjars/bootstrap/5.3.0/css/bootstrap.min.css">
   <style>
@@ -298,17 +300,23 @@
                 </tr>
                 </thead>
                 <tbody>
-                <tr th:each="user : ${allUsers}">
+                <tr th:each="user : ${allUsers}"
+                    th:data-user-id="${user.id}"
+                    th:data-user-firstname="${user.firstName}"
+                    th:data-user-lastname="${user.lastName}"
+                    th:data-user-age="${user.age}"
+                    th:data-user-email="${user.email}"
+                    th:data-user-roles="${#strings.listJoin(user.roles.![name], ',')}">
                   <td th:text="${user.id}">1</td>
                   <td th:text="${user.firstName}">John</td>
                   <td th:text="${user.lastName}">Doe</td>
                   <td th:text="${user.age}">30</td>
                   <td th:text="${user.email}">john@example.com</td>
                   <td>
-                                                <span th:each="role, stat : ${user.roles}">
-                                                    <span th:text="${role.name}">ROLE_USER</span>
-                                                    <span th:unless="${stat.last}">, </span>
-                                                </span>
+        <span th:each="role, stat : ${user.roles}">
+            <span th:text="${role.name}">ROLE_USER</span>
+            <span th:unless="${stat.last}">, </span>
+        </span>
                   </td>
                   <td>
                     <button class="btn btn-edit btn-sm"
@@ -337,6 +345,7 @@
           <div class="tab-pane fade" id="new-user" role="tabpanel">
             <h3 class="h4 mb-4 form-title-left">Add new User</h3>
             <form th:action="@{/admin/users}" method="post" class="form-centered-container">
+              <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
               <div class="mb-4">
                 <label for="firstName" class="form-label-centered">First Name</label>
                 <input type="text" class="form-control form-control-centered" id="firstName"
@@ -430,6 +439,7 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <form id="editUserForm" method="post">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
         <div class="modal-header">
           <h5 class="modal-title form-title-left w-100">Edit user</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -624,67 +634,96 @@
 
   let userToDeleteId = null;
 
-  async function loadUserForEdit(button) {
+  function loadUserForEdit(button) {
     const userId = button.dataset.userId;
 
-    try {
-      const response = await fetch(`/admin/users/${userId}`);
-      const user = await response.json();
+    // Находим строку таблицы с данными пользователя
+    const userRow = document.querySelector(`tr[data-user-id="${userId}"]`);
 
-      document.querySelector('#editUserForm input[name="id"]').value = user.id;
-      document.querySelector('#editUserForm input[name="firstName"]').value = user.firstName;
-      document.querySelector('#editUserForm input[name="lastName"]').value = user.lastName;
-      document.querySelector('#editUserForm input[name="age"]').value = user.age;
-      document.querySelector('#editUserForm input[name="email"]').value = user.email;
+    if (userRow) {
+      // Берем данные из data-атрибутов
+      // Обратите внимание: в HTML data-user-firstname, в JS dataset.userFirstname
+      const firstName = userRow.dataset.userFirstname;
+      const lastName = userRow.dataset.userLastname;
+      const age = userRow.dataset.userAge;
+      const email = userRow.dataset.userEmail;
+      const rolesStr = userRow.dataset.userRoles;
+      const userRoles = rolesStr ? rolesStr.split(',') : [];
 
-      document.querySelector('#editUserForm input[name="password"]').value = '';
-
-      const roleSelect = document.querySelector('#editUserForm select[name="selectedRoles"]');
-      Array.from(roleSelect.options).forEach(option => {
-        option.selected = user.roles.some(role => role.name === option.value);
+      console.log('User data loaded:', {
+        userId, firstName, lastName, age, email, userRoles
       });
 
-      document.getElementById('editUserForm').action = `/admin/users/${userId}`;
+      // Заполняем форму
+      const idInput = document.querySelector('#editUserForm input[name="id"]');
+      const firstNameInput = document.querySelector('#editUserForm input[name="firstName"]');
+      const lastNameInput = document.querySelector('#editUserForm input[name="lastName"]');
+      const ageInput = document.querySelector('#editUserForm input[name="age"]');
+      const emailInput = document.querySelector('#editUserForm input[name="email"]');
 
-    } catch (error) {
-      console.error('Error loading user:', error);
-      alert('Error loading user data');
-    }
-  }
+      if (idInput) idInput.value = userId || '';
+      if (firstNameInput) firstNameInput.value = firstName || '';
+      if (lastNameInput) lastNameInput.value = lastName || '';
+      if (ageInput) ageInput.value = age || '';
+      if (emailInput) emailInput.value = email || '';
 
-  async function loadUserForDelete(button) {
-    const userId = button.dataset.userId;
-    userToDeleteId = userId;
+      // Сбрасываем пароль
+      const passwordInput = document.querySelector('#editUserForm input[name="password"]');
+      if (passwordInput) passwordInput.value = '';
 
-    try {
-      const response = await fetch(`/admin/users/${userId}`);
-      const user = await response.json();
-
-      const modal = document.querySelector('#deleteUserModal');
-      modal.querySelector('input[name="id"]').value = user.id;
-      modal.querySelector('input[name="firstName"]').value = user.firstName;
-      modal.querySelector('input[name="lastName"]').value = user.lastName;
-      modal.querySelector('input[name="age"]').value = user.age;
-      modal.querySelector('input[name="email"]').value = user.email;
-
-      const rolesSelect = modal.querySelector('select[name="roles"]');
-      if (rolesSelect && user.roles) {
-        Array.from(rolesSelect.options).forEach(option => {
-          option.selected = false;
-        });
-
-        user.roles.forEach(userRole => {
-          Array.from(rolesSelect.options).forEach(option => {
-            if (option.value === userRole.name) {
-              option.selected = true;
-            }
-          });
+      // Устанавливаем роли
+      const roleSelect = document.querySelector('#editUserForm select[name="selectedRoles"]');
+      if (roleSelect) {
+        Array.from(roleSelect.options).forEach(option => {
+          option.selected = userRoles.includes(option.value);
         });
       }
 
-    } catch (error) {
-      console.error('Error loading user for deletion:', error);
-      alert('Error loading user data');
+      // Обновляем action формы
+      const form = document.getElementById('editUserForm');
+      if (form) {
+        form.action = `/admin/users/${userId}`;
+      }
+    } else {
+      console.error('User row not found for ID:', userId);
+      alert('User data not found. Please refresh the page.');
+    }
+  }
+
+  function loadUserForDelete(button) {
+    const userId = button.dataset.userId;
+    userToDeleteId = userId;
+
+    // Находим строку таблицы с данными пользователя
+    const userRow = document.querySelector(`tr[data-user-id="${userId}"]`);
+
+    if (userRow) {
+      const firstName = userRow.dataset.userFirstname;
+      const lastName = userRow.dataset.userLastname;
+      const age = userRow.dataset.userAge;
+      const email = userRow.dataset.userEmail;
+      const rolesStr = userRow.dataset.userRoles;
+      const userRoles = rolesStr ? rolesStr.split(',') : [];
+
+      const modal = document.querySelector('#deleteUserModal');
+
+      // Заполняем поля в модальном окне
+      modal.querySelector('input[name="id"]').value = userId;
+      modal.querySelector('input[name="firstName"]').value = firstName;
+      modal.querySelector('input[name="lastName"]').value = lastName;
+      modal.querySelector('input[name="age"]').value = age;
+      modal.querySelector('input[name="email"]').value = email;
+
+      // Заполняем роли (только для отображения)
+      const rolesSelect = modal.querySelector('select[name="roles"]');
+      if (rolesSelect && userRoles.length > 0) {
+        Array.from(rolesSelect.options).forEach(option => {
+          option.selected = userRoles.includes(option.value);
+        });
+      }
+    } else {
+      console.error('User row not found for deletion:', userId);
+      alert('User data not found.');
     }
   }
 
@@ -692,11 +731,18 @@
     if (!userToDeleteId) return;
 
     try {
+      // Получаем CSRF токен из метатега или скрытого поля
+      const csrfToken = document.querySelector('meta[name="_csrf"]')?.content ||
+              document.querySelector('input[name="_csrf"]')?.value;
+
       const response = await fetch(`/admin/users/${userToDeleteId}/delete`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
-        }
+        },
+        body: new URLSearchParams({
+          '_csrf': csrfToken
+        })
       });
 
       if (response.ok) {
@@ -718,6 +764,12 @@
     const formData = new FormData(this);
     const userId = formData.get('id');
 
+    // Добавляем CSRF токен
+    const csrfToken = document.querySelector('meta[name="_csrf"]')?.content;
+    if (csrfToken) {
+      formData.append('_csrf', csrfToken);
+    }
+
     try {
       const response = await fetch(`/admin/users/${userId}`, {
         method: 'POST',
@@ -729,7 +781,9 @@
         modal.hide();
         location.reload();
       } else {
-        alert('Error updating user');
+        const errorText = await response.text();
+        console.error('Error updating user:', errorText);
+        alert('Error updating user: ' + (errorText || 'Unknown error'));
       }
     } catch (error) {
       console.error('Error updating user:', error);

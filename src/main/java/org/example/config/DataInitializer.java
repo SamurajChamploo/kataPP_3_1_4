@@ -2,12 +2,12 @@ package org.example.config;
 
 import org.example.model.Role;
 import org.example.model.User;
+import org.example.repository.RoleRepository;
 import org.example.service.RoleService;
 import org.example.service.UserService;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -18,43 +18,41 @@ public class DataInitializer {
     @Bean
     public ApplicationRunner initData(UserService userService,
                                       RoleService roleService,
-                                      PasswordEncoder passwordEncoder) {
+                                      RoleRepository roleRepository) {
         return args -> {
             if (roleService.findAllRoles().isEmpty()) {
                 Role adminRole = new Role("ADMIN");
                 Role userRole = new Role("USER");
+
+                roleRepository.save(adminRole);
+                roleRepository.save(userRole);
             }
 
             if (userService.findAllUsers().isEmpty()) {
-                Role adminRole = roleService.findRoleByName("ADMIN");
-                Role userRole = roleService.findRoleByName("USER");
-
                 User admin = new User();
                 admin.setFirstName("Admin");
                 admin.setLastName("Adminov");
                 admin.setAge(30);
                 admin.setEmail("admin@mail.ru");
-                admin.setPassword(passwordEncoder.encode("12345"));
+                admin.setPassword("password");
 
-                Set<Role> adminRoles = new HashSet<>();
-                adminRoles.add(adminRole);
-                adminRoles.add(userRole);
-                admin.setRoles(adminRoles);
+                Set<String> adminRoles = new HashSet<>();
+                adminRoles.add("ADMIN");
+                adminRoles.add("USER");
 
-                userService.saveUser(admin);
+                userService.createUser(admin, adminRoles);
 
                 User user = new User();
                 user.setFirstName("User");
                 user.setLastName("Userov");
                 user.setAge(25);
                 user.setEmail("user@mail.ru");
-                user.setPassword(passwordEncoder.encode("12345"));
+                user.setPassword("password");
 
-                Set<Role> userRoles = new HashSet<>();
-                userRoles.add(userRole);
-                user.setRoles(userRoles);
+                Set<String> userRoles = new HashSet<>();
+                userRoles.add("USER");
 
-                userService.saveUser(user);
+                userService.createUser(user, userRoles);
             }
         };
     }
