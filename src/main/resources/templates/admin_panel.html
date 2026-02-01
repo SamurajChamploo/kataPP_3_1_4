@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Admin panel</title>
 
-  <!-- Bootstrap 5.3.2 CSS from CDN -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
         rel="stylesheet">
 
@@ -58,7 +57,6 @@
       background-color: #f8f9fa;
     }
 
-    /* Стили для центрирования форм */
     .centered-form-container {
       max-width: 500px;
       margin: 0 auto;
@@ -136,7 +134,6 @@
       width: 70px;
     }
 
-    /* Стили для информации о пользователе */
     .user-info-card {
       margin: 0 auto;
       border: 1px solid #dee2e6;
@@ -178,7 +175,6 @@
     </div>
 
     <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-      <!-- Админ панель -->
       <div id="admin-content">
         <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
           <h1 class="h2">Admin panel</h1>
@@ -194,7 +190,6 @@
         </ul>
 
         <div class="tab-content">
-          <!-- Таблица пользователей -->
           <div class="tab-pane fade show active" id="usersTab">
             <h3 class="h4 mb-3">All users</h3>
             <div id="usersTableContainer">
@@ -207,7 +202,6 @@
             </div>
           </div>
 
-          <!-- Форма создания пользователя -->
           <div class="tab-pane fade" id="newUserTab">
             <div class="centered-form-container">
               <h3 class="h4 form-title-left">Add new User</h3>
@@ -241,7 +235,6 @@
                   <label class="form-label-centered">Roles</label>
                   <select class="form-select form-select-centered"
                           name="selectedRoles" multiple id="rolesSelectCreate">
-                    <!-- Роли будут загружены через JS -->
                   </select>
                 </div>
                 <div class="form-buttons-centered">
@@ -253,13 +246,11 @@
         </div>
       </div>
 
-      <!-- Информация о текущем пользователе -->
       <div id="user-content" style="display: none;">
         <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
           <h1 class="h2">User information-page</h1>
         </div>
         <div id="currentUserTableContainer" class="user-info-card">
-          <!-- Данные текущего пользователя будут загружены через JS -->
           <div class="text-center py-5">
             <div class="spinner-border text-primary" role="status">
               <span class="visually-hidden">Loading user information...</span>
@@ -272,7 +263,6 @@
   </div>
 </div>
 
-<!-- Модальное окно редактирования -->
 <div class="modal fade" id="editUserModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered modal-dialog-centered-form">
     <div class="modal-content modal-content-centered">
@@ -306,7 +296,6 @@
           <div class="mb-3">
             <label class="form-label-centered">Roles</label>
             <select class="form-select form-select-centered" name="selectedRoles" multiple id="rolesSelectEdit">
-              <!-- Роли будут загружены через JS -->
             </select>
           </div>
         </div>
@@ -319,7 +308,6 @@
   </div>
 </div>
 
-<!-- Модальное окно удаления с заполненными полями -->
 <div class="modal fade" id="deleteUserModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered modal-dialog-centered-form">
     <div class="modal-content modal-content-centered">
@@ -358,7 +346,6 @@
           <label class="form-label-centered">Roles</label>
           <select class="form-select form-select-centered"
                   id="deleteUserRoles" multiple disabled>
-            <!-- Роли будут загружены через JS -->
           </select>
         </div>
       </div>
@@ -370,13 +357,10 @@
   </div>
 </div>
 
-<!-- jQuery 3.7.1 from CDN -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 
-<!-- Bootstrap 5.3.2 JS Bundle from CDN -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- Ваш JavaScript -->
 <script src="/js/admin.js"></script>
 </body>
 </html>

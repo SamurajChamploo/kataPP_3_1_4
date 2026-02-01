@@ -9,6 +9,8 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 
 @Component
 public class SuccessUserHandler implements AuthenticationSuccessHandler {
@@ -18,23 +20,13 @@ public class SuccessUserHandler implements AuthenticationSuccessHandler {
                                         HttpServletResponse response,
                                         Authentication authentication) throws IOException {
         Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
-        boolean hasAdminRole = authorities.stream()
-                .map(GrantedAuthority::getAuthority)
-                .anyMatch(authority ->
-                        authority.equalsIgnoreCase("admin") ||
-                                authority.equalsIgnoreCase("role_admin")
-                );
+        Set<String> roles = new HashSet<>();
 
-        boolean hasUserRole = authorities.stream()
-                .map(GrantedAuthority::getAuthority)
-                .anyMatch(authority ->
-                        authority.equalsIgnoreCase("user") ||
-                                authority.equalsIgnoreCase("role_user")
-                );
+        authorities.forEach(authority -> roles.add(authority.getAuthority().toLowerCase()));
 
-        if (hasAdminRole) {
+        if (roles.contains("admin") || roles.contains("role_admin")) {
             response.sendRedirect("/admin");
-        } else if (hasUserRole) {
+        } else if (roles.contains("user") || roles.contains("role_user")) {
             response.sendRedirect("/user");
         } else {
             response.sendRedirect("/");

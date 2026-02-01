@@ -35,11 +35,11 @@ public class WebSecurityConfig implements WebMvcConfigurer {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login", "/webjars/**", "/css/**", "/js/**").permitAll()
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")     // API админки только для ADMIN
-                        .requestMatchers("/api/user/info").authenticated()      // Инфо о пользователе для всех аутентифицированных
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/user/info").authenticated()
                         .requestMatchers("/user/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers("/login", "/webjars/**", "/css/**", "/js/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
@@ -72,15 +72,13 @@ public class WebSecurityConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // Webjars
         registry.addResourceHandler("/webjars/**")
                 .addResourceLocations(
                         "classpath:/META-INF/resources/webjars/",
                         "/webjars/"
                 )
-                .resourceChain(false); // Отключаем кэширование для разработки
+                .resourceChain(false);
 
-        // Статические ресурсы
         registry.addResourceHandler("/static/js/**")
                 .addResourceLocations(
                         "classpath:/static/js/"
