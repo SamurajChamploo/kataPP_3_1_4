@@ -3,7 +3,6 @@ package org.example.service;
 import org.example.model.Role;
 import org.example.model.User;
 import org.example.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -12,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Service
@@ -22,7 +22,6 @@ public class UserServiceImpl implements UserService {
     private final RoleService roleService;
     private final PasswordEncoder passwordEncoder;
 
-    @Autowired
     public UserServiceImpl(UserRepository userRepository,
                            RoleService roleService,
                            PasswordEncoder passwordEncoder) {
@@ -50,59 +49,60 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public User createUser(User user, Set<String> roleNames) {
-        if (existsByEmail(user.getEmail())) {
-            throw new RuntimeException("User with email " + user.getEmail() + " already exists");
+    public User createUserFromMap(Map<String, Object> userData) {
+        validateUserData(userData, true);
+
+        String email = (String) userData.get("email");
+        if (existsByEmail(email)) {
+            throw new RuntimeException("User with email " + email + " already exists");
         }
 
-        if (roleNames != null && !roleNames.isEmpty()) {
-            Set<Role> roles = roleService.findRolesByNames(roleNames);
-            user.setRoles(roles);
-        } else {
-            Role userRole = roleService.findRoleByName("USER");
-            user.setRoles(Set.of(userRole));
-        }
+        User user = new User();
+        user.setFirstName((String) userData.get("firstName"));
+        user.setLastName((String) userData.get("lastName"));
+        user.setAge(userData.get("age") != null ?
+                Integer.parseInt(userData.get("age").toString()) : 0);
+        user.setEmail(email);
+        user.setPassword(passwordEncoder.encode((String) userData.get("password")));
 
-        if (user.getPassword() != null && !user.getPassword().isEmpty()) {
-            user.setPassword(passwordEncoder.encode(user.getPassword()));
-        }
+        setUserRolesFromMap(user, userData);
 
         return userRepository.save(user);
     }
 
     @Override
     @Transactional
-    public User updateUser(Long id, User updatedUser, Set<String> roleNames) {
+    public User updateUserFromMap(Long id, Map<String, Object> userData) {
+        validateUserData(userData, false);
+
         User existingUser = findUserById(id);
 
-        if (updatedUser.getFirstName() != null) {
-            existingUser.setFirstName(updatedUser.getFirstName());
+        if (userData.containsKey("firstName")) {
+            existingUser.setFirstName((String) userData.get("firstName"));
         }
-        if (updatedUser.getLastName() != null) {
-            existingUser.setLastName(updatedUser.getLastName());
+        if (userData.containsKey("lastName")) {
+            existingUser.setLastName((String) userData.get("lastName"));
         }
-        if (updatedUser.getAge() != null) {
-            existingUser.setAge(updatedUser.getAge());
+        if (userData.containsKey("age")) {
+            existingUser.setAge(Integer.parseInt(userData.get("age").toString()));
         }
 
-        if (updatedUser.getEmail() != null && !updatedUser.getEmail().equals(existingUser.getEmail())) {
-            if (existsByEmail(updatedUser.getEmail())) {
-                throw new RuntimeException("Email " + updatedUser.getEmail() + " is already in use");
+        if (userData.containsKey("email")) {
+            String newEmail = (String) userData.get("email");
+            if (!newEmail.equals(existingUser.getEmail()) && existsByEmail(newEmail)) {
+                throw new RuntimeException("Email " + newEmail + " is already in use");
             }
-            existingUser.setEmail(updatedUser.getEmail());
+            existingUser.setEmail(newEmail);
         }
 
-        if (updatedUser.getPassword() != null && !updatedUser.getPassword().isEmpty()) {
-            existingUser.setPassword(passwordEncoder.encode(updatedUser.getPassword()));
+        if (userData.containsKey("password") &&
+                userData.get("password") != null &&
+                !((String) userData.get("password")).trim().isEmpty()) {
+            existingUser.setPassword(passwordEncoder.encode((String) userData.get("password")));
         }
 
-        if (roleNames != null) {
-            if (roleNames.isEmpty()) {
-                existingUser.setRoles(new HashSet<>());
-            } else {
-                Set<Role> roles = roleService.findRolesByNames(roleNames);
-                existingUser.setRoles(roles);
-            }
+        if (userData.containsKey("roles")) {
+            setUserRolesFromMap(existingUser, userData);
         }
 
         return userRepository.save(existingUser);
@@ -123,10 +123,40 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserDetails loadUserByUsername(String email)
-            throws UsernameNotFoundException {
-        User user = userRepository.findByEmail(email)
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        return userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
-        return user;
+    }
+
+    private void validateUserData(Map<String, Object> userData, boolean isCreate) {
+        if (isCreate) {
+            if (userData.get("firstName") == null || ((String) userData.get("firstName")).trim().isEmpty()) {
+                throw new RuntimeException("First name is required");
+            }
+            if (userData.get("email") == null || ((String) userData.get("email")).trim().isEmpty()) {
+                throw new RuntimeException("Email is required");
+            }
+            if (userData.get("password") == null || ((String) userData.get("password")).trim().isEmpty()) {
+                throw new RuntimeException("Password is required");
+            }
+        }
+
+        if (userData.containsKey("email") && userData.get("email") != null) {
+            String email = (String) userData.get("email");
+            if (email.trim().isEmpty()) {
+                throw new RuntimeException("Email cannot be empty");
+            }
+        }
+    }
+
+    private void setUserRolesFromMap(User user, Map<String, Object> userData) {
+        if (userData.get("roles") != null && userData.get("roles") instanceof List) {
+            Set<String> roleNames = new HashSet<>((List<String>) userData.get("roles"));
+            Set<Role> roles = roleService.findRolesByNames(roleNames);
+            user.setRoles(roles);
+        } else {
+            Role userRole = roleService.findRoleByName("USER");
+            user.setRoles(Set.of(userRole));
+        }
     }
 }

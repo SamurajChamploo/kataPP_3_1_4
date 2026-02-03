@@ -11,12 +11,10 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
 @EnableWebSecurity
-public class WebSecurityConfig implements WebMvcConfigurer {
+public class WebSecurityConfig {
 
     private final UserDetailsServiceImpl userDetailsService;
     private final SuccessUserHandler successUserHandler;
@@ -35,11 +33,9 @@ public class WebSecurityConfig implements WebMvcConfigurer {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/user/info").authenticated()
-                        .requestMatchers("/user/**").hasAnyRole("USER", "ADMIN")
-                        .requestMatchers("/login", "/webjars/**", "/css/**", "/js/**").permitAll()
+                        .requestMatchers("/admin", "/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/user", "/api/user/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers("/", "/login", "/css/**", "/js/**", "/webjars/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
@@ -48,15 +44,13 @@ public class WebSecurityConfig implements WebMvcConfigurer {
                         .usernameParameter("email")
                         .passwordParameter("password")
                         .successHandler(successUserHandler)
+                        .failureUrl("/login?error=true")
                         .permitAll()
                 )
                 .logout(logout -> logout
                         .logoutUrl("/logout")
                         .logoutSuccessUrl("/login?logout")
                         .permitAll()
-                )
-                .exceptionHandling(exception -> exception
-                        .accessDeniedPage("/access-denied")
                 );
 
         return http.build();
@@ -69,20 +63,4 @@ public class WebSecurityConfig implements WebMvcConfigurer {
         authProvider.setPasswordEncoder(passwordEncoder);
         return authProvider;
     }
-
-    @Override
-    public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        registry.addResourceHandler("/webjars/**")
-                .addResourceLocations(
-                        "classpath:/META-INF/resources/webjars/",
-                        "/webjars/"
-                )
-                .resourceChain(false);
-
-        registry.addResourceHandler("/static/js/**")
-                .addResourceLocations(
-                        "classpath:/static/js/"
-                );
-    }
-
 }

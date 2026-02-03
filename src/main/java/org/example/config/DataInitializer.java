@@ -1,58 +1,51 @@
 package org.example.config;
 
 import org.example.model.Role;
-import org.example.model.User;
 import org.example.repository.RoleRepository;
-import org.example.service.RoleService;
 import org.example.service.UserService;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Configuration
 public class DataInitializer {
 
     @Bean
-    public ApplicationRunner initData(UserService userService,
-                                      RoleService roleService,
-                                      RoleRepository roleRepository) {
+    public ApplicationRunner initData(RoleRepository roleRepository,
+                                      UserService userService) {
         return args -> {
-            if (roleService.findAllRoles().isEmpty()) {
+            if (roleRepository.count() == 0) {
                 Role adminRole = new Role("ADMIN");
                 Role userRole = new Role("USER");
-
                 roleRepository.save(adminRole);
                 roleRepository.save(userRole);
             }
 
             if (userService.findAllUsers().isEmpty()) {
-                User admin = new User();
-                admin.setFirstName("Admin");
-                admin.setLastName("Adminov");
-                admin.setAge(30);
-                admin.setEmail("admin@mail.ru");
-                admin.setPassword("password");
+                Map<String, Object> adminData = new HashMap<>();
+                adminData.put("firstName", "Admin");
+                adminData.put("lastName", "Adminov");
+                adminData.put("age", 30);
+                adminData.put("email", "admin@mail.ru");
+                adminData.put("password", "password");
+                adminData.put("roles", List.of("ADMIN", "USER"));
 
-                Set<String> adminRoles = new HashSet<>();
-                adminRoles.add("ADMIN");
-                adminRoles.add("USER");
+                userService.createUserFromMap(adminData);
 
-                userService.createUser(admin, adminRoles);
+                Map<String, Object> userData = new HashMap<>();
+                userData.put("firstName", "User");
+                userData.put("lastName", "Userov");
+                userData.put("age", 25);
+                userData.put("email", "user@mail.ru");
+                userData.put("password", "password");
+                userData.put("roles", List.of("USER"));
 
-                User user = new User();
-                user.setFirstName("User");
-                user.setLastName("Userov");
-                user.setAge(25);
-                user.setEmail("user@mail.ru");
-                user.setPassword("password");
-
-                Set<String> userRoles = new HashSet<>();
-                userRoles.add("USER");
-
-                userService.createUser(user, userRoles);
+                userService.createUserFromMap(userData);
             }
         };
     }

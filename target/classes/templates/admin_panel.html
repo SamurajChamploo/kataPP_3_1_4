@@ -1,149 +1,32 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Admin panel</title>
 
-  <!-- Bootstrap 5.3.2 CSS from CDN -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
-        rel="stylesheet">
-
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    :root {
-      --edit-color: #4BA0B4;
-    }
-
-    .sidebar {
-      min-height: calc(100vh - 56px);
-      background-color: #f8f9fa;
-      border-right: 1px solid #dee2e6;
-    }
-
-    .nav-link {
-      color: #495057 !important;
-      background-color: transparent !important;
-      border-radius: 0.25rem;
-      margin: 2px 0;
-      padding: 0.5rem 1rem;
-    }
-
-    .nav-link:hover {
-      background-color: #e9ecef !important;
-    }
-
-    .nav-link.active {
-      background-color: #0d6efd !important;
-      color: white !important;
-      font-weight: 600;
-    }
-
-    .nav-link.active:hover {
-      background-color: #0b5ed7 !important;
-    }
-
-    .btn-edit {
-      background-color: var(--edit-color);
-      border-color: var(--edit-color);
-      color: white;
-    }
-
-    .btn-edit:hover {
-      background-color: #3a889a;
-      border-color: #3a889a;
-      color: white;
-    }
-
-    .table th {
-      background-color: #f8f9fa;
-    }
-
-    /* Стили для центрирования форм */
-    .centered-form-container {
-      max-width: 500px;
-      margin: 0 auto;
-      padding: 20px;
-    }
-
-    .form-title-left {
-      text-align: left;
-      margin: 0 0 1.5rem 0;
-      padding: 0 0 0.75rem 0;
-      font-weight: 600;
-      color: #212529;
-      border-bottom: 2px solid #4BA0B4;
-      width: 100%;
-    }
-
-    .form-label-centered {
-      display: block;
-      width: 100%;
-      text-align: center;
-      font-weight: 500;
-      margin-bottom: 0.5rem;
-      color: #495057;
-    }
-
-    .form-control-centered,
-    .form-select-centered {
-      width: 100%;
-      max-width: 300px;
-      margin: 0 auto;
-      text-align: left;
-      display: block;
-      padding: 0.375rem 0.75rem;
-    }
-
-    input[readonly].form-control-centered,
-    input[readonly].form-control-centered:focus {
-      text-align: center;
-      background-color: #f8f9fa;
-      color: #6c757d;
-      cursor: not-allowed;
-      border-color: #ced4da;
-    }
-
-    .form-select-centered[multiple] {
-      text-align: left;
-      height: auto;
-      min-height: 100px;
-    }
-
-    .form-buttons-centered {
-      text-align: center;
-      margin-top: 2rem;
-      padding-top: 1.5rem;
-      border-top: 1px solid #e9ecef;
-      width: 100%;
-    }
-
-    .form-buttons-centered .btn {
-      min-width: 150px;
-      padding: 0.5rem 2rem;
-      font-weight: 500;
-    }
-
-    /* Модальные окна */
-    .modal-dialog-centered-form {
-      max-width: 500px;
-    }
-
-    .modal-content-centered {
-      margin: 0 auto;
-    }
-
-    .action-buttons .btn {
-      width: 70px;
-    }
-
-    /* Стили для информации о пользователе */
-    .user-info-card {
-      margin: 0 auto;
-      border: 1px solid #dee2e6;
-      border-radius: 0.375rem;
-      padding: 1.5rem;
-      background-color: #f8f9fa;
-    }
+    :root { --edit-color: #4BA0B4; }
+    .sidebar { min-height: calc(100vh - 56px); background-color: #f8f9fa; border-right: 1px solid #dee2e6; }
+    .nav-link { color: #495057 !important; background-color: transparent !important; border-radius: 0.25rem; margin: 2px 0; padding: 0.5rem 1rem; }
+    .nav-link:hover { background-color: #e9ecef !important; }
+    .nav-link.active { background-color: #0d6efd !important; color: white !important; font-weight: 600; }
+    .nav-link.active:hover { background-color: #0b5ed7 !important; }
+    .btn-edit { background-color: var(--edit-color); border-color: var(--edit-color); color: white; }
+    .btn-edit:hover { background-color: #3a889a; border-color: #3a889a; color: white; }
+    .table th { background-color: #f8f9fa; }
+    .centered-form-container { max-width: 500px; margin: 0 auto; padding: 20px; }
+    .form-title-left { text-align: left; margin: 0 0 1.5rem 0; padding: 0 0 0.75rem 0; font-weight: 600; color: #212529; border-bottom: 2px solid #4BA0B4; width: 100%; }
+    .form-label-centered { display: block; width: 100%; text-align: center; font-weight: 500; margin-bottom: 0.5rem; color: #495057; }
+    .form-control-centered, .form-select-centered { width: 100%; max-width: 300px; margin: 0 auto; text-align: left; display: block; padding: 0.375rem 0.75rem; }
+    .form-select-centered[multiple] { text-align: left; height: auto; min-height: 100px; }
+    .form-buttons-centered { text-align: center; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #e9ecef; width: 100%; }
+    .form-buttons-centered .btn { min-width: 150px; padding: 0.5rem 2rem; font-weight: 500; }
+    .modal-dialog-centered-form { max-width: 500px; }
+    .modal-content-centered { margin: 0 auto; }
+    .action-buttons .btn { width: 70px; }
+    .user-info-card { margin: 0 auto; border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 1.5rem; background-color: #f8f9fa; }
   </style>
 </head>
 <body>
@@ -164,12 +47,12 @@
       <div class="position-sticky pt-3">
         <ul class="nav flex-column">
           <li class="nav-item">
-            <a class="nav-link active" href="#" id="adminLink">
+            <a class="nav-link active" href="/admin" id="adminLink">
               <strong>Admin</strong>
             </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="#" id="userLink">
+            <a class="nav-link" href="/user" id="userLink">
               <strong>User</strong>
             </a>
           </li>
@@ -178,7 +61,7 @@
     </div>
 
     <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-      <!-- Админ панель -->
+      <!-- Содержимое админ-панели -->
       <div id="admin-content">
         <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
           <h1 class="h2">Admin panel</h1>
@@ -194,7 +77,6 @@
         </ul>
 
         <div class="tab-content">
-          <!-- Таблица пользователей -->
           <div class="tab-pane fade show active" id="usersTab">
             <h3 class="h4 mb-3">All users</h3>
             <div id="usersTableContainer">
@@ -207,7 +89,6 @@
             </div>
           </div>
 
-          <!-- Форма создания пользователя -->
           <div class="tab-pane fade" id="newUserTab">
             <div class="centered-form-container">
               <h3 class="h4 form-title-left">Add new User</h3>
@@ -241,7 +122,6 @@
                   <label class="form-label-centered">Roles</label>
                   <select class="form-select form-select-centered"
                           name="selectedRoles" multiple id="rolesSelectCreate">
-                    <!-- Роли будут загружены через JS -->
                   </select>
                 </div>
                 <div class="form-buttons-centered">
@@ -253,13 +133,12 @@
         </div>
       </div>
 
-      <!-- Информация о текущем пользователе -->
+      <!-- Содержимое пользовательской страницы (скрыто по умолчанию) -->
       <div id="user-content" style="display: none;">
         <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
           <h1 class="h2">User information-page</h1>
         </div>
         <div id="currentUserTableContainer" class="user-info-card">
-          <!-- Данные текущего пользователя будут загружены через JS -->
           <div class="text-center py-5">
             <div class="spinner-border text-primary" role="status">
               <span class="visually-hidden">Loading user information...</span>
@@ -272,7 +151,7 @@
   </div>
 </div>
 
-<!-- Модальное окно редактирования -->
+<!-- Модальные окна -->
 <div class="modal fade" id="editUserModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered modal-dialog-centered-form">
     <div class="modal-content modal-content-centered">
@@ -300,13 +179,12 @@
             <input type="email" class="form-control form-control-centered" name="email" required>
           </div>
           <div class="mb-3">
-            <label class="form-label-centered">Password</label>
-              <input type="password" class="form-control form-control-centered" name="password">
+            <label class="form-label-centered">Password (leave empty to keep current)</label>
+            <input type="password" class="form-control form-control-centered" name="password">
           </div>
           <div class="mb-3">
             <label class="form-label-centered">Roles</label>
             <select class="form-select form-select-centered" name="selectedRoles" multiple id="rolesSelectEdit">
-              <!-- Роли будут загружены через JS -->
             </select>
           </div>
         </div>
@@ -319,7 +197,6 @@
   </div>
 </div>
 
-<!-- Модальное окно удаления с заполненными полями -->
 <div class="modal fade" id="deleteUserModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered modal-dialog-centered-form">
     <div class="modal-content modal-content-centered">
@@ -328,7 +205,6 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-
         <div class="mb-3">
           <label class="form-label-centered">ID</label>
           <input type="text" class="form-control form-control-centered"
@@ -358,7 +234,6 @@
           <label class="form-label-centered">Roles</label>
           <select class="form-select form-select-centered"
                   id="deleteUserRoles" multiple disabled>
-            <!-- Роли будут загружены через JS -->
           </select>
         </div>
       </div>
@@ -370,13 +245,8 @@
   </div>
 </div>
 
-<!-- jQuery 3.7.1 from CDN -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-
-<!-- Bootstrap 5.3.2 JS Bundle from CDN -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
-<!-- Ваш JavaScript -->
 <script src="/js/admin.js"></script>
 </body>
 </html>

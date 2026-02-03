@@ -1,475 +1,600 @@
-// Конфигурация
-const API_BASE = '/api';
-const ADMIN_API = `${API_BASE}/admin`;
-const USER_API = `${API_BASE}/user`;
+class App {
+    constructor() {
+        this.currentUser = null;
+        this.isAdmin = false;
+        this.users = [];
+        this.roles = [];
 
-
-// Глобальные переменные
-let currentUser = null;
-let allRoles = [];
-let allUsers = [];
-
-// Основная функция инициализации
-$(document).ready(function() {
-    console.log('Admin panel loading...');
-    initializePage();
-});
-
-
-async function initializePage() {
-    try {
-        // 1. Загружаем текущего пользователя
-        await loadCurrentUser();
-
-        // 2. Загружаем роли и пользователей
-        await Promise.all([
-            loadRoles(),
-            loadUsers()
-        ]);
-
-        // 3. Инициализируем вкладки
-        initializeTabs();
-
-        // 4. Настраиваем обработчики событий
-        setupEventListeners();
-
-        console.log('Page initialized successfully');
-
-    } catch (error) {
-        console.error('Error initializing page:', error);
+        this.setupTableEvents = this.setupTableEvents.bind(this);
+        this.openEditModal = this.openEditModal.bind(this);
+        this.openDeleteModal = this.openDeleteModal.bind(this);
+        this.fillEditModal = this.fillEditModal.bind(this);
+        this.fillDeleteModal = this.fillDeleteModal.bind(this);
     }
-}
 
+    async init() {
+        console.log('App initializing...');
+        try {
+            await this.loadCurrentUser();
+            console.log('Current user loaded, isAdmin:', this.isAdmin);
 
-// Загрузка текущего пользователя
-async function loadCurrentUser() {
-    try {
-        const response = await fetch(`${USER_API}/info`);
+            const path = window.location.pathname;
+            console.log('Current path:', path);
 
-        if (response.ok) {
-            currentUser = await response.json();
-            updateUserInfoHeader();
-            renderCurrentUserInfo();
+            if (path.includes('/admin')) {
+                await this.initAdminPage();
+            } else if (path.includes('/user')) {
+                this.initUserPage();
+            }
+        } catch (error) {
+            console.error('App init error:', error);
+            this.showError('Application initialization failed');
         }
-    } catch (error) {
-        console.error('Error loading current user:', error);
     }
-}
 
-// Обновление информации в хедере
-function updateUserInfoHeader() {
-    if (currentUser) {
-        const roles = currentUser.roles ?
-            currentUser.roles.map(r => r.name).join(', ') :
-            'Loading...';
-
-        $('#currentUserInfo').html(`
-            ${currentUser.email} with roles: ${roles}
-        `);
-    }
-}
-
-// Загрузка ролей
-async function loadRoles() {
-    try {
-        const response = await fetch(`${ADMIN_API}/roles`);
-
-        if (response.ok) {
-            allRoles = await response.json();
-            populateRoleSelects();
+    async loadCurrentUser() {
+        try {
+            console.log('Loading current user...');
+            const response = await fetch('/api/user/info');
+            if (response.ok) {
+                this.currentUser = await response.json();
+                this.isAdmin = this.currentUser.roles.some(role => role.name === 'ADMIN');
+                this.updateUserInfo();
+                this.updateNavigation();
+            } else {
+                console.error('Failed to load user, status:', response.status);
+                if (response.status === 401 || response.status === 403) {
+                    window.location.href = '/login';
+                }
+            }
+        } catch (error) {
+            console.error('Failed to load user:', error);
         }
-    } catch (error) {
-        console.error('Error loading roles:', error);
     }
-}
 
-// Загрузка пользователей
-async function loadUsers() {
-    try {
-        const response = await fetch(`${ADMIN_API}/users`);
-
-        if (response.ok) {
-            const data = await response.json();
-            allUsers = data.users || [];
-            renderUsersTable();
+    updateUserInfo() {
+        if (this.currentUser) {
+            const roles = this.currentUser.roles.map(r => r.name).join(', ');
+            const userInfoElement = document.getElementById('currentUserInfo');
+            if (userInfoElement) {
+                userInfoElement.innerHTML = `${this.currentUser.email} with roles: ${roles}`;
+            }
         }
-    } catch (error) {
-        console.error('Error loading users:', error);
-        $('#usersTableContainer').html(`
-            <div class="alert alert-danger">
-                Error loading users: ${error.message}
-            </div>
-        `);
-    }
-}
-
-// Заполнение селектов с ролями
-function populateRoleSelects() {
-    if (allRoles.length === 0) return;
-
-    const roleOptions = allRoles.map(role =>
-        `<option value="${role.name}">${role.name}</option>`
-    ).join('');
-
-    $('#rolesSelectCreate').html(roleOptions);
-    $('#rolesSelectEdit').html(roleOptions);
-    $('#deleteUserRoles').html(roleOptions);
-}
-
-// Рендеринг таблицы пользователей с ОТДЕЛЬНЫМИ колонками для Edit и Delete
-function renderUsersTable() {
-    if (!allUsers || allUsers.length === 0) {
-        $('#usersTableContainer').html(`
-            <div class="alert alert-info">
-                No users found. Create the first user.
-            </div>
-        `);
-        return;
     }
 
-    const tableHtml = `
-        <div class="table-responsive">
-            <table class="table table-striped table-hover">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>First Name</th>
-                        <th>Last Name</th>
-                        <th>Age</th>
-                        <th>Email</th>
-                        <th>Roles</th>
-                        <th>Edit</th>
-                        <th>Delete</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${allUsers.map(user => `
+    updateNavigation() {
+        // Обновляем навигацию в зависимости от роли
+        const adminLink = document.getElementById('adminLink');
+        const userLink = document.getElementById('userLink');
+
+        if (adminLink && userLink) {
+            // Мы на странице админа - показываем обе кнопки
+            const currentPath = window.location.pathname;
+
+            if (currentPath.includes('/admin')) {
+                adminLink.classList.add('active');
+                userLink.classList.remove('active');
+            } else if (currentPath.includes('/user')) {
+                adminLink.classList.remove('active');
+                userLink.classList.add('active');
+            }
+
+            // Показываем обе кнопки только если пользователь админ
+            if (!this.isAdmin) {
+                adminLink.style.display = 'none';
+            }
+        }
+    }
+
+    async initAdminPage() {
+        console.log('Initializing admin page...');
+
+        // Проверяем права доступа
+        if (!this.isAdmin) {
+            console.log('User is not admin, redirecting to user page...');
+            window.location.href = '/user';
+            return;
+        }
+
+        try {
+            await this.loadRoles();
+            await this.loadUsers();
+            this.setupAdminEventListeners();
+            this.renderAdminPage();
+        } catch (error) {
+            console.error('Admin page init error:', error);
+            this.showError('Failed to initialize admin page');
+        }
+    }
+
+    initUserPage() {
+        console.log('Initializing user page...');
+        this.renderUserPage();
+        this.setupUserEventListeners();
+
+        // Если админ на странице пользователя, показываем обе кнопки в навигации
+        if (this.isAdmin) {
+            this.showAdminNavigationOnUserPage();
+        }
+    }
+
+    showAdminNavigationOnUserPage() {
+        // Создаем навигацию для админа на странице пользователя
+        const sidebar = document.querySelector('.sidebar .nav');
+        if (sidebar) {
+            // Проверяем, есть ли уже кнопка Admin
+            let adminLinkExists = false;
+            const links = sidebar.querySelectorAll('.nav-link');
+            links.forEach(link => {
+                if (link.textContent.includes('Admin')) {
+                    adminLinkExists = true;
+                }
+            });
+
+            // Если кнопки Admin нет, добавляем ее
+            if (!adminLinkExists) {
+                const adminLi = document.createElement('li');
+                adminLi.className = 'nav-item';
+                adminLi.innerHTML = `
+                    <a class="nav-link" href="/admin" id="adminLinkOnUserPage">
+                        <strong>Admin</strong>
+                    </a>
+                `;
+
+                // Находим текущую кнопку User и вставляем перед ней
+                const userLink = sidebar.querySelector('.nav-link[href="#"]');
+                if (userLink && userLink.parentElement) {
+                    sidebar.insertBefore(adminLi, userLink.parentElement);
+                }
+
+                // Делаем кнопку User активной
+                const currentUserLink = document.querySelector('.nav-link[href="#"]');
+                if (currentUserLink) {
+                    currentUserLink.classList.add('active');
+                }
+
+                // Добавляем обработчик для новой кнопки
+                $('#adminLinkOnUserPage').off('click').on('click', (e) => {
+                    e.preventDefault();
+                    window.location.href = '/admin';
+                });
+            }
+        }
+    }
+
+    async loadRoles() {
+        try {
+            console.log('Loading roles...');
+            const response = await fetch('/api/admin/roles');
+            if (response.ok) {
+                this.roles = await response.json();
+                console.log('Roles loaded:', this.roles.length);
+                this.populateRoleSelects();
+            }
+        } catch (error) {
+            console.error('Failed to load roles:', error);
+        }
+    }
+
+    async loadUsers() {
+        try {
+            console.log('Loading users...');
+            const response = await fetch('/api/admin/users');
+            if (response.ok) {
+                const data = await response.json();
+                this.users = data.users || [];
+                console.log('Users loaded:', this.users.length);
+                this.renderUsersTable();
+            }
+        } catch (error) {
+            console.error('Failed to load users:', error);
+            this.showError('Failed to load users: ' + error.message);
+        }
+    }
+
+    populateRoleSelects() {
+        if (this.roles.length === 0) return;
+
+        const roleOptions = this.roles.map(role =>
+            `<option value="${role.name}">${role.name}</option>`
+        ).join('');
+
+        const selects = ['rolesSelectCreate', 'rolesSelectEdit', 'deleteUserRoles'];
+        selects.forEach(id => {
+            const select = document.getElementById(id);
+            if (select) {
+                select.innerHTML = roleOptions;
+            }
+        });
+    }
+
+    renderUsersTable() {
+        const container = document.getElementById('usersTableContainer');
+        if (!container) return;
+
+        if (this.users.length === 0) {
+            container.innerHTML = `
+                <div class="alert alert-info">
+                    No users found. Create the first user.
+                </div>
+            `;
+            return;
+        }
+
+        const tableHtml = `
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
                         <tr>
-                            <td>${user.id}</td>
-                            <td>${user.firstName}</td>
-                            <td>${user.lastName}</td>
-                            <td>${user.age}</td>
-                            <td>${user.email}</td>
-                            <td>${user.roles ? user.roles.map(r => r.name).join(', ') : ''}</td>
-                            <td class="text-center">
-                                <button class="btn btn-edit btn-sm edit-user-btn" 
-                                        data-user-id="${user.id}">
-                                    Edit
-                                </button>
-                            </td>
-                            <td class="text-center">
-                                <button class="btn btn-danger btn-sm delete-user-btn" 
-                                        data-user-id="${user.id}"
-                                        data-user-firstname="${user.firstName}"
-                                        data-user-lastname="${user.lastName}"
-                                        data-user-age="${user.age}"
-                                        data-user-email="${user.email}"
-                                        data-user-roles="${user.roles ? user.roles.map(r => r.name).join(',') : ''}">
-                                    Delete
-                                </button>
-                            </td>
+                            <th>ID</th>
+                            <th>First Name</th>
+                            <th>Last Name</th>
+                            <th>Age</th>
+                            <th>Email</th>
+                            <th>Roles</th>
+                            <th>Edit</th>
+                            <th>Delete</th>
                         </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-        </div>
-    `;
-
-    $('#usersTableContainer').html(tableHtml);
-}
-// Рендеринг информации о текущем пользователе для вкладки User
-function renderCurrentUserInfo() {
-    if (!currentUser) {
-        $('#currentUserTableContainer').html(`
-            <div class="alert alert-warning">
-                User information not available
+                    </thead>
+                    <tbody>
+                        ${this.users.map(user => `
+                            <tr>
+                                <td>${user.id}</td>
+                                <td>${user.firstName}</td>
+                                <td>${user.lastName}</td>
+                                <td>${user.age}</td>
+                                <td>${user.email}</td>
+                                <td>${user.roles.map(r => r.name).join(', ')}</td>
+                                <td class="text-center">
+                                    <button class="btn btn-edit btn-sm edit-user-btn" 
+                                            data-user-id="${user.id}">
+                                        Edit
+                                    </button>
+                                </td>
+                                <td class="text-center">
+                                    <button class="btn btn-danger btn-sm delete-user-btn" 
+                                            data-user-id="${user.id}">
+                                        Delete
+                                    </button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
             </div>
-        `);
-        return;
+        `;
+
+        container.innerHTML = tableHtml;
+        this.setupTableEvents();
+
+        // Скрываем спиннер загрузки
+        const spinner = container.querySelector('.spinner-border');
+        const loadingText = container.querySelector('.visually-hidden');
+        if (spinner) spinner.style.display = 'none';
+        if (loadingText) loadingText.style.display = 'none';
     }
 
-    const userInfoHtml = `
-        <h3 class="h4 mb-3">About user</h3>
-        <div class="table-responsive">
-            <table class="table table-striped table-hover">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>First Name</th>
-                        <th>Last Name</th>
-                        <th>Age</th>
-                        <th>Email</th>
-                        <th>Roles</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${allUsers.map(user => `
-                        <tr>
-                            <td>${user.id}</td>
-                            <td>${user.firstName}</td>
-                            <td>${user.lastName}</td>
-                            <td>${user.age}</td>
-                            <td>${user.email}</td>
-                            <td>${user.roles ? user.roles.map(r => r.name).join(', ') : ''}</td>
-                        
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-        </div>
-    `;
+    setupTableEvents() {
+        console.log('Setting up table events...');
 
-    $('#currentUserTableContainer').html(userInfoHtml);
-}
+        // Удаляем старые обработчики и добавляем новые с правильным контекстом
+        $(document).off('click', '.edit-user-btn').on('click', '.edit-user-btn', (e) => {
+            console.log('Edit button clicked');
+            const userId = $(e.currentTarget).data('user-id');
+            console.log('User ID:', userId);
+            this.openEditModal(userId);
+        });
 
-// Инициализация вкладок и навигации
-function initializeTabs() {
-    // Сначала устанавливаем начальное состояние
-    $('#adminLink').addClass('active');
-    $('#userLink').removeClass('active');
-    $('#admin-content').show();
-    $('#user-content').hide();
+        $(document).off('click', '.delete-user-btn').on('click', '.delete-user-btn', (e) => {
+            console.log('Delete button clicked');
+            const userId = $(e.currentTarget).data('user-id');
+            console.log('User ID:', userId);
+            this.openDeleteModal(userId);
+        });
+    }
 
-    // Вкладка "Users table"
-    $('#users-tab').off('click').on('click', function(e) {
-        e.preventDefault();
-        activateTab('users-tab', 'usersTab');
-    });
+    setupAdminEventListeners() {
+        console.log('Setting up admin event listeners...');
 
-    // Вкладка "New User"
-    $('#new-user-tab').off('click').on('click', function(e) {
-        e.preventDefault();
-        activateTab('new-user-tab', 'newUserTab');
-    });
+        // Создание пользователя
+        $('#createUserForm').off('submit').on('submit', async (e) => {
+            e.preventDefault();
+            await this.createUser();
+        });
 
-    // Ссылка "Admin" в сайдбаре
-    $('#adminLink').off('click').on('click', function(e) {
-        e.preventDefault();
-        switchToAdminView();
-    });
+        // Редактирование пользователя
+        $('#editUserForm').off('submit').on('submit', async (e) => {
+            e.preventDefault();
+            await this.updateUser();
+        });
 
-    // Ссылка "User" в сайдбаре
-    $('#userLink').off('click').on('click', function(e) {
-        e.preventDefault();
-        switchToUserView();
-    });
+        // Удаление пользователя
+        $('#confirmDeleteBtn').off('click').on('click', async () => {
+            await this.deleteUser();
+        });
 
-    // Активируем первую вкладку в админке
-    activateTab('users-tab', 'usersTab');
-}
+        // Табы
+        $('#users-tab').off('click').on('click', (e) => {
+            e.preventDefault();
+            this.activateTab('users-tab', 'usersTab');
+        });
 
-// Активация вкладки
-function activateTab(tabId, paneId) {
-    // Деактивируем все табы
-    $('#adminTabs .nav-link').removeClass('active');
-    $('.tab-pane').removeClass('show active');
+        $('#new-user-tab').off('click').on('click', (e) => {
+            e.preventDefault();
+            this.activateTab('new-user-tab', 'newUserTab');
+        });
 
-    // Активируем выбранную вкладку
-    $(`#${tabId}`).addClass('active');
-    $(`#${paneId}`).addClass('show active');
-}
+        // Навигация между страницами
+        $('#adminLink').off('click').on('click', (e) => {
+            e.preventDefault();
+            window.location.href = '/admin';
+        });
 
-// Переключение на админ панель
-function switchToAdminView() {
-    // Обновляем навигацию в сайдбаре
-    $('#adminLink').addClass('active');
-    $('#userLink').removeClass('active');
+        $('#userLink').off('click').on('click', (e) => {
+            e.preventDefault();
+            window.location.href = '/user';
+        });
 
-    // Показываем админ контент, скрываем пользовательский
-    $('#admin-content').show();
-    $('#user-content').hide();
+        // Выход
+        $('#logoutForm').off('submit').on('submit', (e) => {
+            e.preventDefault();
+            window.location.href = '/logout';
+        });
+    }
 
-    // Активируем первую вкладку в админке
-    activateTab('users-tab', 'usersTab');
-}
+    setupUserEventListeners() {
+        console.log('Setting up user event listeners...');
 
-// Переключение на пользовательскую информацию
-function switchToUserView() {
-    // Обновляем навигацию в сайдбаре
-    $('#userLink').addClass('active');
-    $('#adminLink').removeClass('active');
+        // Навигация для админа на странице пользователя
+        if (this.isAdmin) {
+            $(document).off('click', '#adminLinkOnUserPage').on('click', '#adminLinkOnUserPage', (e) => {
+                e.preventDefault();
+                window.location.href = '/admin';
+            });
+        }
 
-    // Показываем пользовательский контент, скрываем админ
-    $('#user-content').show();
-    $('#admin-content').hide();
+        $('#logoutForm').off('submit').on('submit', (e) => {
+            e.preventDefault();
+            window.location.href = '/logout';
+        });
+    }
+    async openEditModal(userId) {
+        console.log('Opening edit modal for user:', userId);
+        try {
+            const response = await fetch(`/api/admin/users/${userId}`);
+            if (response.ok) {
+                const user = await response.json();
+                console.log('User data loaded for edit:', user);
+                this.fillEditModal(user);
+                $('#editUserModal').modal('show');
+            } else {
+                const errorData = await response.json();
+                console.error('Failed to load user for edit:', errorData);
+                this.showError(errorData.error || 'Failed to load user data');
+            }
+        } catch (error) {
+            console.error('Failed to open edit modal:', error);
+            this.showError('Failed to load user data: ' + error.message);
+        }
+    }
 
-    // Обновляем информацию о пользователе (на случай, если данные изменились)
-    renderCurrentUserInfo();
-}
+    fillEditModal(user) {
+        console.log('Filling edit modal with user:', user);
+        $('#editUserForm [name="id"]').val(user.id);
+        $('#editUserForm [name="firstName"]').val(user.firstName);
+        $('#editUserForm [name="lastName"]').val(user.lastName);
+        $('#editUserForm [name="age"]').val(user.age);
+        $('#editUserForm [name="email"]').val(user.email);
+        $('#editUserForm [name="password"]').val('');
 
-// Настройка обработчиков событий
-function setupEventListeners() {
-    // Создание пользователя
-    $('#createUserForm').off('submit').on('submit', async function(e) {
-        e.preventDefault();
+        const userRoles = user.roles ? user.roles.map(r => r.name) : [];
+        console.log('User roles for select:', userRoles);
+        $('#editUserForm [name="selectedRoles"]').val(userRoles);
+    }
 
+    async openDeleteModal(userId) {
+        console.log('Opening delete modal for user:', userId);
+        try {
+            const response = await fetch(`/api/admin/users/${userId}`);
+            if (response.ok) {
+                const user = await response.json();
+                console.log('User data loaded for delete:', user);
+                this.fillDeleteModal(user);
+                $('#deleteUserModal').modal('show');
+            } else {
+                const errorData = await response.json();
+                console.error('Failed to load user for delete:', errorData);
+                this.showError(errorData.error || 'Failed to load user data');
+            }
+        } catch (error) {
+            console.error('Failed to open delete modal:', error);
+            this.showError('Failed to load user data: ' + error.message);
+        }
+    }
+
+    fillDeleteModal(user) {
+        console.log('Filling delete modal with user:', user);
+        $('#deleteUserIdField').val(user.id);
+        $('#deleteUserFirstName').val(user.firstName);
+        $('#deleteUserLastName').val(user.lastName);
+        $('#deleteUserAge').val(user.age);
+        $('#deleteUserEmail').val(user.email);
+
+        const userRoles = user.roles ? user.roles.map(r => r.name) : [];
+        console.log('User roles for delete select:', userRoles);
+        $('#deleteUserRoles').val(userRoles);
+    }
+
+
+    async createUser() {
         const formData = {
-            user: {
-                firstName: $(this).find('[name="firstName"]').val(),
-                lastName: $(this).find('[name="lastName"]').val(),
-                age: parseInt($(this).find('[name="age"]').val()),
-                email: $(this).find('[name="email"]').val(),
-                password: $(this).find('[name="password"]').val()
-            },
-            selectedRoles: Array.from($(this).find('[name="selectedRoles"]').val() || [])
+            firstName: $('#createUserForm [name="firstName"]').val(),
+            lastName: $('#createUserForm [name="lastName"]').val(),
+            age: $('#createUserForm [name="age"]').val(),
+            email: $('#createUserForm [name="email"]').val(),
+            password: $('#createUserForm [name="password"]').val(),
+            roles: $('#createUserForm [name="selectedRoles"]').val()
         };
 
         try {
-            const response = await fetch(`${ADMIN_API}/users`, {
+            const response = await fetch('/api/admin/users', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
             });
 
+            const result = await response.json();
+
             if (response.ok) {
-                showAlert('success', 'User created successfully');
-                $(this)[0].reset();
-                await loadUsers();
-                activateTab('users-tab', 'usersTab');
+                $('#createUserForm')[0].reset();
+                await this.loadUsers();
+                this.activateTab('users-tab', 'usersTab');
             } else {
-                const error = await response.text();
-                showAlert('danger', error || 'Error creating user');
+                this.showError(result.error || 'Failed to create user');
             }
         } catch (error) {
-            console.error('Error creating user:', error);
-            showAlert('danger', 'Error creating user');
+            this.showError(error.message);
         }
-    });
+    }
 
-    // Редактирование пользователя
-    $(document).off('click', '.edit-user-btn').on('click', '.edit-user-btn', function() {
-        const userId = $(this).data('user-id');
-        openEditModal(userId);
-    });
-
-    // Удаление пользователя
-    $(document).off('click', '.delete-user-btn').on('click', '.delete-user-btn', function() {
-        const userId = $(this).data('user-id');
-        const userFirstName = $(this).data('user-firstname');
-        const userLastName = $(this).data('user-lastname');
-        const userAge = $(this).data('user-age');
-        const userEmail = $(this).data('user-email');
-        const userRolesStr = $(this).data('user-roles');
-
-        openDeleteModal(userId, userFirstName, userLastName, userAge, userEmail, userRolesStr);
-    });
-
-    // Редактирование пользователя (форма)
-    $('#editUserForm').off('submit').on('submit', async function(e) {
-        e.preventDefault();
-
-        const userId = $(this).find('[name="id"]').val();
+    async updateUser() {
+        const userId = $('#editUserForm [name="id"]').val();
         const formData = {
-            user: {
-                firstName: $(this).find('[name="firstName"]').val(),
-                lastName: $(this).find('[name="lastName"]').val(),
-                age: parseInt($(this).find('[name="age"]').val()),
-                email: $(this).find('[name="email"]').val()
-            },
-            selectedRoles: Array.from($(this).find('[name="selectedRoles"]').val() || [])
+            firstName: $('#editUserForm [name="firstName"]').val(),
+            lastName: $('#editUserForm [name="lastName"]').val(),
+            age: $('#editUserForm [name="age"]').val(),
+            email: $('#editUserForm [name="email"]').val(),
+            password: $('#editUserForm [name="password"]').val(),
+            roles: $('#editUserForm [name="selectedRoles"]').val()
         };
 
-        const password = $(this).find('[name="password"]').val();
-        if (password && password.trim() !== '') {
-            formData.user.password = password;
-        }
-
         try {
-            const response = await fetch(`${ADMIN_API}/users/${userId}`, {
+            const response = await fetch(`/api/admin/users/${userId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
             });
 
+            const result = await response.json();
+
             if (response.ok) {
-                showAlert('success', 'User updated successfully');
                 $('#editUserModal').modal('hide');
-                await loadUsers();
-                // Обновляем информацию о текущем пользователе, если это он
-                if (currentUser && currentUser.id === userId) {
-                    await loadCurrentUser();
+                await this.loadUsers();
+
+                if (this.currentUser && this.currentUser.id == userId) {
+                    await this.loadCurrentUser();
                 }
+
             } else {
-                const error = await response.text();
-                showAlert('danger', error || 'Error updating user');
+                this.showError(result.error || 'Failed to update user');
             }
         } catch (error) {
-            console.error('Error updating user:', error);
-            showAlert('danger', 'Error updating user');
+            this.showError(error.message);
         }
-    });
+    }
 
-    // Подтверждение удаления
-    $('#confirmDeleteBtn').off('click').on('click', async function() {
+    async deleteUser() {
         const userId = $('#deleteUserIdField').val();
 
         try {
-            const response = await fetch(`${ADMIN_API}/users/${userId}`, {
+            const response = await fetch(`/api/admin/users/${userId}`, {
                 method: 'DELETE'
             });
 
+            const result = await response.json();
+
             if (response.ok) {
-                showAlert('success', 'User deleted successfully');
                 $('#deleteUserModal').modal('hide');
-                await loadUsers();
+                await this.loadUsers();
             } else {
-                const error = await response.text();
-                showAlert('danger', error || 'Error deleting user');
+                this.showError(result.error || 'Failed to delete user');
             }
         } catch (error) {
-            console.error('Error deleting user:', error);
-            showAlert('danger', 'Error deleting user');
+            this.showError(error.message);
         }
-    });
+    }
 
-    // Выход из системы
-    $('#logoutForm').off('submit').on('submit', function(e) {
-        e.preventDefault();
-        window.location.href = '/logout';
-    });
-}
+    activateTab(tabId, paneId) {
+        $('#adminTabs .nav-link').removeClass('active');
+        $('.tab-pane').removeClass('show active');
+        $(`#${tabId}`).addClass('active');
+        $(`#${paneId}`).addClass('show active');
+    }
 
-// Открытие модального окна редактирования
-async function openEditModal(userId) {
-    try {
-        const response = await fetch(`${ADMIN_API}/users/${userId}`);
+    renderAdminPage() {
+        console.log('Rendering admin page...');
+        this.renderUsersTable();
+        this.activateTab('users-tab', 'usersTab');
+        this.updateNavigation();
 
-        if (response.ok) {
-            const user = await response.json();
+        // Скрываем спиннеры загрузки
+        this.hideLoadingSpinners();
+    }
 
-            // Заполняем форму
-            $('#editUserForm [name="id"]').val(user.id);
-            $('#editUserForm [name="firstName"]').val(user.firstName);
-            $('#editUserForm [name="lastName"]').val(user.lastName);
-            $('#editUserForm [name="age"]').val(user.age);
-            $('#editUserForm [name="email"]').val(user.email);
-            $('#editUserForm [name="password"]').val('');
+    renderUserPage() {
+        console.log('Rendering user page...');
 
-            // Устанавливаем выбранные роли
-            const userRoles = user.roles ? user.roles.map(r => r.name) : [];
-            $('#editUserForm [name="selectedRoles"]').val(userRoles);
+        // Если мы на странице админа, но переключились на пользовательский контент
+        const userContent = document.getElementById('user-content');
+        const adminContent = document.getElementById('admin-content');
+        const userInfoContainer = document.getElementById('userInfoContainer') ||
+            document.getElementById('currentUserTableContainer');
 
-            // Показываем модальное окно
-            $('#editUserModal').modal('show');
+        if (userInfoContainer && this.currentUser) {
+            const userInfoHtml = `
+                <div class="user-info-card">
+                    <h3 class="h4 mb-3">About user</h3>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>First Name</th>
+                                    <th>Last Name</th>
+                                    <th>Age</th>
+                                    <th>Email</th>
+                                    <th>Roles</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>${this.currentUser.id}</td>
+                                    <td>${this.currentUser.firstName}</td>
+                                    <td>${this.currentUser.lastName}</td>
+                                    <td>${this.currentUser.age}</td>
+                                    <td>${this.currentUser.email}</td>
+                                    <td>${this.currentUser.roles.map(r => r.name).join(', ')}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+
+            userInfoContainer.innerHTML = userInfoHtml;
         }
-    } catch (error) {
-        console.error('Error loading user for edit:', error);
+
+        // Скрываем спиннеры загрузки
+        this.hideLoadingSpinners();
+    }
+
+    hideLoadingSpinners() {
+        const spinners = document.querySelectorAll('.spinner-border');
+        spinners.forEach(spinner => {
+            spinner.style.display = 'none';
+            const parent = spinner.parentElement;
+            if (parent && parent.querySelector('p')) {
+                parent.querySelector('p').style.display = 'none';
+            }
+        });
     }
 }
 
-// Открытие модального окна удаления с ЗАПОЛНЕННЫМИ полями
-function openDeleteModal(userId, firstName, lastName, age, email, rolesStr) {
-    // Заполняем все поля
-    $('#deleteUserIdField').val(userId);
-    $('#deleteUserFirstName').val(firstName);
-    $('#deleteUserLastName').val(lastName);
-    $('#deleteUserAge').val(age);
-    $('#deleteUserEmail').val(email);
-
-    // Устанавливаем роли (разделенные запятой)
-    const userRoles = rolesStr ? rolesStr.split(',') : [];
-    $('#deleteUserRoles').val(userRoles);
-
-    // Показываем модальное окно
-    $('#deleteUserModal').modal('show');
-}
+// Инициализация при полной загрузке DOM
+$(document).ready(function() {
+    console.log('Document ready, initializing app...');
+    window.app = new App();
+    window.app.init().catch(error => {
+        console.error('App initialization failed:', error);
+    });
+});
