@@ -28,7 +28,6 @@ class App {
             }
         } catch (error) {
             console.error('App init error:', error);
-            this.showError('Application initialization failed');
         }
     }
 
@@ -63,12 +62,10 @@ class App {
     }
 
     updateNavigation() {
-        // Обновляем навигацию в зависимости от роли
         const adminLink = document.getElementById('adminLink');
         const userLink = document.getElementById('userLink');
 
         if (adminLink && userLink) {
-            // Мы на странице админа - показываем обе кнопки
             const currentPath = window.location.pathname;
 
             if (currentPath.includes('/admin')) {
@@ -79,7 +76,6 @@ class App {
                 userLink.classList.add('active');
             }
 
-            // Показываем обе кнопки только если пользователь админ
             if (!this.isAdmin) {
                 adminLink.style.display = 'none';
             }
@@ -89,7 +85,6 @@ class App {
     async initAdminPage() {
         console.log('Initializing admin page...');
 
-        // Проверяем права доступа
         if (!this.isAdmin) {
             console.log('User is not admin, redirecting to user page...');
             window.location.href = '/user';
@@ -103,7 +98,6 @@ class App {
             this.renderAdminPage();
         } catch (error) {
             console.error('Admin page init error:', error);
-            this.showError('Failed to initialize admin page');
         }
     }
 
@@ -112,17 +106,14 @@ class App {
         this.renderUserPage();
         this.setupUserEventListeners();
 
-        // Если админ на странице пользователя, показываем обе кнопки в навигации
         if (this.isAdmin) {
             this.showAdminNavigationOnUserPage();
         }
     }
 
     showAdminNavigationOnUserPage() {
-        // Создаем навигацию для админа на странице пользователя
         const sidebar = document.querySelector('.sidebar .nav');
         if (sidebar) {
-            // Проверяем, есть ли уже кнопка Admin
             let adminLinkExists = false;
             const links = sidebar.querySelectorAll('.nav-link');
             links.forEach(link => {
@@ -131,7 +122,6 @@ class App {
                 }
             });
 
-            // Если кнопки Admin нет, добавляем ее
             if (!adminLinkExists) {
                 const adminLi = document.createElement('li');
                 adminLi.className = 'nav-item';
@@ -141,19 +131,16 @@ class App {
                     </a>
                 `;
 
-                // Находим текущую кнопку User и вставляем перед ней
                 const userLink = sidebar.querySelector('.nav-link[href="#"]');
                 if (userLink && userLink.parentElement) {
                     sidebar.insertBefore(adminLi, userLink.parentElement);
                 }
 
-                // Делаем кнопку User активной
                 const currentUserLink = document.querySelector('.nav-link[href="#"]');
                 if (currentUserLink) {
                     currentUserLink.classList.add('active');
                 }
 
-                // Добавляем обработчик для новой кнопки
                 $('#adminLinkOnUserPage').off('click').on('click', (e) => {
                     e.preventDefault();
                     window.location.href = '/admin';
@@ -188,7 +175,6 @@ class App {
             }
         } catch (error) {
             console.error('Failed to load users:', error);
-            this.showError('Failed to load users: ' + error.message);
         }
     }
 
@@ -221,7 +207,7 @@ class App {
             return;
         }
 
-        const tableHtml = `
+        container.innerHTML = `
             <div class="table-responsive">
                 <table class="table table-striped table-hover">
                     <thead>
@@ -263,11 +249,8 @@ class App {
                 </table>
             </div>
         `;
-
-        container.innerHTML = tableHtml;
         this.setupTableEvents();
 
-        // Скрываем спиннер загрузки
         const spinner = container.querySelector('.spinner-border');
         const loadingText = container.querySelector('.visually-hidden');
         if (spinner) spinner.style.display = 'none';
@@ -277,7 +260,6 @@ class App {
     setupTableEvents() {
         console.log('Setting up table events...');
 
-        // Удаляем старые обработчики и добавляем новые с правильным контекстом
         $(document).off('click', '.edit-user-btn').on('click', '.edit-user-btn', (e) => {
             console.log('Edit button clicked');
             const userId = $(e.currentTarget).data('user-id');
@@ -296,24 +278,20 @@ class App {
     setupAdminEventListeners() {
         console.log('Setting up admin event listeners...');
 
-        // Создание пользователя
         $('#createUserForm').off('submit').on('submit', async (e) => {
             e.preventDefault();
             await this.createUser();
         });
 
-        // Редактирование пользователя
         $('#editUserForm').off('submit').on('submit', async (e) => {
             e.preventDefault();
             await this.updateUser();
         });
 
-        // Удаление пользователя
         $('#confirmDeleteBtn').off('click').on('click', async () => {
             await this.deleteUser();
         });
 
-        // Табы
         $('#users-tab').off('click').on('click', (e) => {
             e.preventDefault();
             this.activateTab('users-tab', 'usersTab');
@@ -324,7 +302,6 @@ class App {
             this.activateTab('new-user-tab', 'newUserTab');
         });
 
-        // Навигация между страницами
         $('#adminLink').off('click').on('click', (e) => {
             e.preventDefault();
             window.location.href = '/admin';
@@ -335,7 +312,6 @@ class App {
             window.location.href = '/user';
         });
 
-        // Выход
         $('#logoutForm').off('submit').on('submit', (e) => {
             e.preventDefault();
             window.location.href = '/logout';
@@ -345,7 +321,6 @@ class App {
     setupUserEventListeners() {
         console.log('Setting up user event listeners...');
 
-        // Навигация для админа на странице пользователя
         if (this.isAdmin) {
             $(document).off('click', '#adminLinkOnUserPage').on('click', '#adminLinkOnUserPage', (e) => {
                 e.preventDefault();
@@ -370,11 +345,9 @@ class App {
             } else {
                 const errorData = await response.json();
                 console.error('Failed to load user for edit:', errorData);
-                this.showError(errorData.error || 'Failed to load user data');
             }
         } catch (error) {
             console.error('Failed to open edit modal:', error);
-            this.showError('Failed to load user data: ' + error.message);
         }
     }
 
@@ -404,11 +377,9 @@ class App {
             } else {
                 const errorData = await response.json();
                 console.error('Failed to load user for delete:', errorData);
-                this.showError(errorData.error || 'Failed to load user data');
             }
         } catch (error) {
             console.error('Failed to open delete modal:', error);
-            this.showError('Failed to load user data: ' + error.message);
         }
     }
 
@@ -443,17 +414,15 @@ class App {
                 body: JSON.stringify(formData)
             });
 
-            const result = await response.json();
-
             if (response.ok) {
                 $('#createUserForm')[0].reset();
                 await this.loadUsers();
                 this.activateTab('users-tab', 'usersTab');
             } else {
-                this.showError(result.error || 'Failed to create user');
+                console.log('Failed to create user');
             }
         } catch (error) {
-            this.showError(error.message);
+            console.log('Error');
         }
     }
 
@@ -475,21 +444,19 @@ class App {
                 body: JSON.stringify(formData)
             });
 
-            const result = await response.json();
-
             if (response.ok) {
                 $('#editUserModal').modal('hide');
                 await this.loadUsers();
 
-                if (this.currentUser && this.currentUser.id == userId) {
+                if (this.currentUser && this.currentUser.id === userId) {
                     await this.loadCurrentUser();
                 }
 
             } else {
-                this.showError(result.error || 'Failed to update user');
+                console.log('Failed to update user');
             }
         } catch (error) {
-            this.showError(error.message);
+            console.log('Error');
         }
     }
 
@@ -501,16 +468,14 @@ class App {
                 method: 'DELETE'
             });
 
-            const result = await response.json();
-
             if (response.ok) {
                 $('#deleteUserModal').modal('hide');
                 await this.loadUsers();
             } else {
-                this.showError(result.error || 'Failed to delete user');
+                console.log('Failed to delete user');
             }
         } catch (error) {
-            this.showError(error.message);
+            console.log('Error');
         }
     }
 
@@ -527,21 +492,16 @@ class App {
         this.activateTab('users-tab', 'usersTab');
         this.updateNavigation();
 
-        // Скрываем спиннеры загрузки
         this.hideLoadingSpinners();
     }
 
     renderUserPage() {
         console.log('Rendering user page...');
-
-        // Если мы на странице админа, но переключились на пользовательский контент
-        const userContent = document.getElementById('user-content');
-        const adminContent = document.getElementById('admin-content');
         const userInfoContainer = document.getElementById('userInfoContainer') ||
             document.getElementById('currentUserTableContainer');
 
         if (userInfoContainer && this.currentUser) {
-            const userInfoHtml = `
+            userInfoContainer.innerHTML = `
                 <div class="user-info-card">
                     <h3 class="h4 mb-3">About user</h3>
                     <div class="table-responsive">
@@ -570,11 +530,8 @@ class App {
                     </div>
                 </div>
             `;
-
-            userInfoContainer.innerHTML = userInfoHtml;
         }
 
-        // Скрываем спиннеры загрузки
         this.hideLoadingSpinners();
     }
 
@@ -590,7 +547,6 @@ class App {
     }
 }
 
-// Инициализация при полной загрузке DOM
 $(document).ready(function() {
     console.log('Document ready, initializing app...');
     window.app = new App();
